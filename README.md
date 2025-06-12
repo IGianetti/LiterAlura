@@ -50,7 +50,7 @@ Este proyecto, **Literalura**, es una aplicación de catálogo de libros constru
 
 2.  **Clonar el Repositorio:**
     ```bash
-    git clone https://github.com/IGianetti/Challenge-LiterAlura.git
+    git clone https://github.com/IGianetti/LiterAlura.git
     cd literalura
     ```
 
