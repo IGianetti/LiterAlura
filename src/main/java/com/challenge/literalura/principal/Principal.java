@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.DoubleSummaryStatistics;
 import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
@@ -51,6 +52,7 @@ public class Principal {
                     3- Listar autores registrados
                     4- Listar autores vivos en un determinado año
                     5- Listar libros por idioma
+                    6- Generar estadísticas de descargas
                     0- Salir
                     -------------------------------------
                     """;
@@ -72,7 +74,10 @@ public class Principal {
                         listarAutoresVivosPorAno();
                         break;
                     case 5:
-                        listarLibrosPorIdioma(); // <--- Aquí es donde se llama el método modificado
+                        listarLibrosPorIdioma();
+                        break;
+                    case 6:
+                        generarEstadisticasDescargas();
                         break;
                     case 0:
                         System.out.println("Cerrando la aplicación. ¡Gracias!");
@@ -171,7 +176,7 @@ public class Principal {
         }
     }
 
-    // --- Método modificado para mostrar solo la cantidad ---
+    // --- Metodo modificado para mostrar solo la cantidad ---
     private void listarLibrosPorIdioma() {
         System.out.println("""
             Ingrese el idioma para buscar libros:
@@ -203,5 +208,26 @@ public class Principal {
             case "pt" -> "portugués";
             default -> codigoIdioma; // Devuelve el código si no es uno de los conocidos
         };
+    }
+
+    private void generarEstadisticasDescargas() {
+
+        List<Libro> libros = libroRepository.findAll();
+
+        if (libros.isEmpty()) {
+            System.out.println("No hay libros registrados para generar estadísticas.");
+            return;
+        }
+
+        DoubleSummaryStatistics stats = libros.stream()
+                .mapToDouble(Libro::getNumeroDeDescargas)
+                .summaryStatistics();
+
+        System.out.println("\n--- Estadísticas de Descargas de Libros ---");
+        System.out.println("Total de libros: " + stats.getCount());
+        System.out.println("Promedio de descargas: " + String.format("%.2f", stats.getAverage()));
+        System.out.println("Máximo de descargas: " + stats.getMax());
+        System.out.println("Mínimo de descargas: " + stats.getMin());
+        System.out.println("------------------------------------------");
     }
 }
