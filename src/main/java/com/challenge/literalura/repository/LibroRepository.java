@@ -1,6 +1,8 @@
 package com.challenge.literalura.repository;
 
 import com.challenge.literalura.modelos.Libro;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -17,4 +19,7 @@ public interface LibroRepository extends JpaRepository<Libro, Long> {
 
     // Metodo para encontrar el top 10 de libros por número de descargas de forma descendente
     List<Libro> findTop10ByOrderByNumeroDeDescargasDesc();
+
+    // Nuevo metodo para encontrar libros por idioma con paginación
+    Page<Libro> findByIdioma(String idioma, Pageable pageable);
 }

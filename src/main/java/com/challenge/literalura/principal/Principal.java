@@ -10,16 +10,22 @@ import com.challenge.literalura.repository.LibroRepository;
 
 import com.challenge.literalura.service.ConsumoAPI;
 import com.challenge.literalura.service.ConvierteDatos;
-import com.challenge.literalura.service.ConversorDatos;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.DoubleSummaryStatistics;
 import java.util.InputMismatchException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
+import java.util.stream.Collectors;
+
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Collectors;
+
 
 
 @Component
@@ -68,6 +74,8 @@ public class Principal {
                     BOLD + CYAN + "║ " + BLUE + "5. Listar libros por idioma      🌐  " + CYAN + "║" + RESET + "\n" +
                     BOLD + CYAN + "║ " + BLUE + "6. Estadísticas de descargas     📊  " + CYAN + "║" + RESET + "\n" +
                     BOLD + CYAN + "║ " + BLUE + "7. Top 10 libros más descargados " + "⭐" + "  " + CYAN + "║" + RESET + "\n" +
+                    BOLD + CYAN + "║ " + BLUE + "8. Buscar autores por criterio   " + "👤" + "  " + CYAN + "║" + RESET + "\n" +
+                    BOLD + CYAN + "║ " + BLUE + "9. Libros por idioma (Paginado)  " + "📄" + "  " + CYAN + "║" + RESET + "\n" +
                     BOLD + CYAN + "║                                     ║" + RESET + "\n" +
                     BOLD + CYAN + "║ " + RED + "0. Salir                         ❌  " + CYAN + "║" + RESET + "\n" +
                     BOLD + CYAN + "╚═════════════════════════════════════╝" + RESET + "\n" +
@@ -99,6 +107,12 @@ public class Principal {
                         break;
                     case 7:
                         mostrarTop10LibrosMasDescargados();
+                        break;
+                    case 8:
+                        buscarAutoresPorCriterio();
+                        break;
+                    case 9:
+                        listarLibrosPorIdiomaPaginado();
                         break;
                     case 0:
                         System.out.println(GREEN + "Cerrando la aplicación. ¡Gracias!" + RESET);
@@ -262,7 +276,7 @@ public class Principal {
             top10Libros.forEach(l -> {
                 System.out.println(CYAN + "--------------------------------------" + RESET);
                 System.out.println(BOLD + "Título: " + RESET + l.getTitle());
-                // Asegúrate de que tu entidad Libro tiene un método getAutorPrincipal() o similar
+                // Asegúrate de que tu entidad Libro tiene un metodo getAutorPrincipal() o similar
                 // para mostrar el primer autor o todos los autores asociados.
                 // Si tienes una relación ManyToMany con Autor, podría ser algo como:
                 // l.getAutores().stream().map(Autor::getName).collect(Collectors.joining(", "))
@@ -280,4 +294,146 @@ public class Principal {
         }
         System.out.println(YELLOW + "---------------------------------------" + RESET);
     }
+
+    // Nuevo metodo para buscar autores por nombre o año y mostrar sus libros
+    private void buscarAutoresPorCriterio() {
+        System.out.println(YELLOW + "\n--- Buscar Autor ---" + RESET);
+        System.out.println(CYAN + "1. Por nombre " + RESET);
+        System.out.println(CYAN + "2. Por año de nacimiento" + RESET);
+        System.out.println(CYAN + "3. Por año de fallecimiento" + RESET);
+        System.out.println(CYAN + "0. Volver al menú principal" + RESET);
+        System.out.print(BOLD + YELLOW + "Elija una opción: " + RESET);
+
+        try {
+            int opcionBusqueda = Integer.valueOf(teclado.nextLine());
+            List<Autor> autoresEncontrados = null;
+
+            switch (opcionBusqueda) {
+                case 1:
+                    System.out.print(BLUE + "Ingrese el nombre del autor (ej. Jane Austen o Austen): " + RESET);
+                    String nombreBusquedaInput = teclado.nextLine().trim();
+
+                    // Prepara la versión original de la búsqueda
+                    String originalSearch = nombreBusquedaInput;
+
+                    // Prepara la versión invertida de la búsqueda (Apellido Nombre)
+                    String invertedSearch = nombreBusquedaInput;
+                    String[] palabras = nombreBusquedaInput.split(" ");
+                    if (palabras.length >= 2) {
+                        // Construimos "Apellido Nombre" si la entrada fue "Nombre Apellido"
+                        // Ej. "Jane Austen" -> "Austen Jane"
+                        // Ej. "Mary Shelley" -> "Shelley Mary"
+                        invertedSearch = palabras[palabras.length - 1] + " " + String.join(" ", java.util.Arrays.copyOfRange(palabras, 0, palabras.length - 1));
+                    }
+                    // Si el nombre original es "Austen, Jane", la inversión no lo cambia a "Jane Austen"
+                    // Esto está bien, porque la normalización en la query eliminará la coma.
+
+                    // Llama al metodo de búsqueda flexible con ambas versiones normalizadas
+                    // La normalización (quitar espacios, comas, puntos y pasar a minúsculas)
+                    // ocurrirá DENTRO DE LA QUERY para el campo 'a.name'
+                    // y aquí preparamos los parámetros de búsqueda con esa misma lógica para que coincidan.
+                    autoresEncontrados = autorRepository.findFlexibleByName(
+                            originalSearch, // Pasamos la cadena original
+                            invertedSearch  // Pasamos la cadena invertida
+                    );
+                    break;
+                case 2:
+                    System.out.print(BLUE + "Ingrese el año de nacimiento (ej. 1800): " + RESET);
+                    Integer anoNacimiento = Integer.valueOf(teclado.nextLine());
+                    autoresEncontrados = autorRepository.findByBirthYear(anoNacimiento);
+                    break;
+                case 3:
+                    System.out.print(BLUE + "Ingrese el año de fallecimiento (ej. 1950): " + RESET);
+                    Integer anoFallecimiento = Integer.valueOf(teclado.nextLine());
+                    autoresEncontrados = autorRepository.findByDeathYear(anoFallecimiento);
+                    break;
+                case 0:
+                    return;
+                default:
+                    System.out.println(RED + "Opción de búsqueda inválida." + RESET);
+                    return;
+            }
+
+            if (autoresEncontrados != null && !autoresEncontrados.isEmpty()) {
+                System.out.println(GREEN + "\n--- Autores Encontrados ---" + RESET);
+                autoresEncontrados.forEach(a -> {
+                    System.out.println(CYAN + "--------------------------------------" + RESET);
+                    System.out.println(BOLD + "Nombre: " + RESET + a.getName());
+                    System.out.println(BOLD + "Año de Nacimiento: " + RESET + (a.getBirthYear() != null ? a.getBirthYear() : "N/A"));
+                    System.out.println(BOLD + "Año de Fallecimiento: " + RESET + (a.getDeathYear() != null ? a.getDeathYear() : "N/A"));
+                    // Conteo de libros
+                    int cantidadLibros = (a.getLibros() != null) ? a.getLibros().size() : 0;
+                    System.out.println(BOLD + "Cantidad de Libros: " + RESET + cantidadLibros);
+                    if (cantidadLibros > 0) {
+                        System.out.println(BOLD + "Títulos: " + RESET + a.getLibros().stream()
+                                .map(Libro::getTitle)
+                                .collect(Collectors.joining("; ")));
+                    }
+                });
+                System.out.println(CYAN + "--------------------------------------" + RESET);
+            } else {
+                System.out.println(RED + "No se encontraron autores con ese criterio." + RESET);
+            }
+        } catch (InputMismatchException | NumberFormatException e) {
+            System.out.println(RED + "Entrada inválida. Por favor, ingrese un número o un texto válido." + RESET);
+            teclado.nextLine(); // Consumir la entrada inválida
+        } catch (Exception e) {
+            System.out.println(RED + "Error al buscar autores: " + e.getMessage() + RESET);
+        }
+        System.out.println(YELLOW + "---------------------------------------" + RESET);
+    }
+
+    // Nuevo método para listar libros por idioma con paginación
+    private void listarLibrosPorIdiomaPaginado() {
+        System.out.println(YELLOW + "\n--- Listar Libros por Idioma (Paginado) ---" + RESET);
+        System.out.print(BLUE + "Ingrese el código de idioma (ej. es, en, fr): " + RESET);
+        String idioma = teclado.nextLine().trim().toLowerCase();
+
+        int pageNum = 0;
+        int pageSize = 5; // Definimos el tamaño de la página (puedes ajustarlo)
+
+        while (true) {
+            Pageable pageable = PageRequest.of(pageNum, pageSize);
+            Page<Libro> librosPage = libroRepository.findByIdioma(idioma, pageable);
+
+            // Mensaje para 0 libros encontrados (tu requisito)
+            if (librosPage.isEmpty() && pageNum == 0) {
+                System.out.println(RED + "0 libros encontrados en '" + idioma + "'." + RESET);
+                break; // Sale del bucle si no hay nada en la primera página
+            } else if (librosPage.isEmpty() && pageNum > 0) {
+                System.out.println(YELLOW + "No hay más libros para mostrar." + RESET);
+                break; // Sale del bucle si no hay más páginas
+            }
+
+            System.out.println(GREEN + "\n--- Página " + (pageNum + 1) + " de " + librosPage.getTotalPages() + " (Total de libros: " + librosPage.getTotalElements() + ") ---" + RESET);
+            librosPage.getContent().forEach(l -> { // getContent() obtiene la lista de libros de la página actual
+                System.out.println(CYAN + "--------------------------------------" + RESET);
+                System.out.println(BOLD + "Título: " + RESET + l.getTitle());
+                if (l.getAutores() != null && !l.getAutores().isEmpty()) {
+                    System.out.println(BOLD + "Autor(es): " + RESET + l.getAutores().stream()
+                            .map(a -> a.getName())
+                            .collect(Collectors.joining(", ")));
+                } else {
+                    System.out.println(BOLD + "Autor(es): " + RESET + "Desconocido");
+                }
+                System.out.println(BOLD + "Idioma(s): " + RESET + l.getIdioma());
+                System.out.println(BOLD + "Número de Descargas: " + RESET + l.getNumeroDeDescargas());
+            });
+            System.out.println(CYAN + "--------------------------------------" + RESET);
+
+            if (!librosPage.hasNext()) { // Si no hay una siguiente página
+                System.out.println(YELLOW + "\nFin de la lista de libros para este idioma." + RESET);
+                break;
+            }
+
+            System.out.print(BOLD + YELLOW + "\nPresione Enter para ver la siguiente página o 's' para salir: " + RESET);
+            String respuesta = teclado.nextLine().trim().toLowerCase();
+            if (respuesta.equals("s")) {
+                break;
+            }
+            pageNum++; // Avanzar a la siguiente página
+        }
+        System.out.println(YELLOW + "---------------------------------------" + RESET);
+    }
+
 }

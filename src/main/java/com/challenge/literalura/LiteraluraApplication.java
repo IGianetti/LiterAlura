@@ -12,7 +12,7 @@ public class LiteraluraApplication implements CommandLineRunner {
 	// Ya no necesitas inyectar LibroRepository y AutorRepository aquí para pasarlos a Principal.
 	// Principal ahora los inyecta directamente.
 
-	@Autowired // 7Inyecta la instancia de Principal que Spring ha creado!
+	@Autowired // Inyecta la instancia de Principal que Spring ha creado!
 	private Principal principal;
 
 	public static void main(String[] args) {
