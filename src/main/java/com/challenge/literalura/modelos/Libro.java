@@ -1,52 +1,43 @@
 package com.challenge.literalura.modelos;
 
 import jakarta.persistence.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-@Entity // Indica que esta clase es una entidad JPA
-@Table(name = "libros") // Mapea esta entidad a la tabla 'libros' en tu DB
-
+@Entity
+@Table(name = "libros")
 public class Libro {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // ID primario generado por la base de datos
+    private Long id;
 
-    // ELIMINA @JsonAlias("id")
-    @Column(unique = true) // Asegura que el ID de Gutendex sea único en tu DB
-    private Long gutendexId; // Almacena el ID original del libro de la API Gutendex
+    @Column(unique = true)
+    private Long gutendexId;
 
-    @Column(unique = true) // Asegura que no haya títulos de libros duplicados (si ese es tu deseo)
+    @Column(unique = true)
     private String title;
 
-    // ELIMINA @JsonAlias("authors")
-    @ManyToMany(cascade = CascadeType.MERGE, fetch = FetchType.EAGER) // CascadeType.MERGE es clave para autores
+    @ManyToMany(cascade = CascadeType.MERGE, fetch = FetchType.EAGER)
     @JoinTable(
             name = "libro_autor",
             joinColumns = @JoinColumn(name = "libro_id"),
             inverseJoinColumns = @JoinColumn(name = "autor_id")
     )
-    private List<Autor> autores = new ArrayList<>(); // Inicializado para evitar NullPointerExceptions
+    private Set<Autor> autores = new HashSet<>(); //
 
     private String idioma;
 
+    private Integer numeroDeDescargas;
 
-    private Integer numeroDeDescargas; // Cambiado a Integer para consistencia
-
-    // --- Constructor vacío, necesario para JPA ---
     public Libro() {}
 
-
-    // Constructor para crear un objeto Libro (entidad DB) a partir de un DatosLibro (record de la API)
     public Libro(DatosLibro datosLibro) {
         this.gutendexId = datosLibro.idGutendex();
         this.title = datosLibro.titulo();
-
-        // Tomamos solo el primer idioma, como se acordó para simplificar
         this.idioma = datosLibro.idiomas() != null && !datosLibro.idiomas().isEmpty() ? datosLibro.idiomas().get(0) : "N/A";
         this.numeroDeDescargas = datosLibro.numeroDeDescargas();
-        this.autores = new ArrayList<>(); // Se inicializa, la lógica de asignación de autores se hará en Principal.java
+        this.autores = new HashSet<>(); //
     }
 
     // --- Getters y Setters ---
@@ -59,15 +50,26 @@ public class Libro {
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
 
-    public List<Autor> getAutores() { return autores; }
-    public void setAutores(List<Autor> autores) { this.autores = autores; }
+    public Set<Autor> getAutores() { return autores; }
+    public void setAutores(Set<Autor> autores) { this.autores = autores; }
 
     public String getIdioma() { return idioma; }
     public void setIdioma(String idioma) { this.idioma = idioma; }
 
-    public Integer getNumeroDeDescargas() { return numeroDeDescargas; } // Getter con tipo Integer
+    public Integer getNumeroDeDescargas() { return numeroDeDescargas; }
     public void setNumeroDeDescargas(Integer numeroDeDescargas) { this.numeroDeDescargas = numeroDeDescargas; }
 
+    // Metodo para añadir autor (ahora consistente)
+    public void addAutor(Autor autor) {
+        // No necesitamos el if (this.autores == null) si ya lo inicializamos arriba.
+        this.autores.add(autor); // Añade al Set<Autor>
+
+        // Asegura la relación bidireccional en el autor
+        if (autor.getLibros() == null) {
+            autor.setLibros(new HashSet<>()); // Inicializa el Set<Libro> del autor si es nulo
+        }
+        autor.getLibros().add(this); // Añade 'este libro' al Set<Libro> del autor
+    }
 
     @Override
     public String toString() {

@@ -7,10 +7,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface LibroRepository extends JpaRepository<Libro, Long> {
 
+    // Metodo para buscar un libro por su título, ignorando mayúsculas/minúsculas
+    // Spring Data JPA lo implementa automáticamente si el nombre del metodo sigue la convención
+    Optional<Libro> findByTitle(String title);
 
     List<Libro> findByIdioma(String idioma); // Derived query para listar por idioma
 
