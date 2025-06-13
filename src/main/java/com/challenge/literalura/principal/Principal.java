@@ -39,23 +39,41 @@ public class Principal {
     @Autowired
     private AutorRepository autorRepository;
 
+    // Constantes ANSI para colores
+    public static final String RESET = "\u001B[0m";
+    public static final String BLACK = "\u001B[30m";
+    public static final String RED = "\u001B[31m";
+    public static final String GREEN = "\u001B[32m";
+    public static final String YELLOW = "\u001B[33m";
+    public static final String BLUE = "\u001B[34m";
+    public static final String PURPLE = "\u001B[35m";
+    public static final String CYAN = "\u001B[36m";
+    public static final String WHITE = "\u001B[37m";
+    // Para texto en negrita
+    public static final String BOLD = "\u001B[1m";
+
 
 
     public void muestraElMenu() {
         var opcion = -1;
         while (opcion != 0) {
-            var menu = """
-                    -------------------------------------
-                    Elija la opción a través de su número:
-                    1- Buscar libro por título
-                    2- Listar libros registrados
-                    3- Listar autores registrados
-                    4- Listar autores vivos en un determinado año
-                    5- Listar libros por idioma
-                    6- Generar estadísticas de descargas
-                    0- Salir
-                    -------------------------------------
-                    """;
+            // --- Menú con símbolos Unicode más compatibles y ajuste de espacios ---
+            var menu = BOLD + CYAN + "╔═════════════════════════════════════╗" + RESET + "\n" +
+                    BOLD + CYAN + "║" + YELLOW + "        LITERALURA - MENÚ PRINCIPAL" + CYAN + "        ║" + RESET + "\n" +
+                    BOLD + CYAN + "╠═════════════════════════════════════╣" + RESET + "\n" +
+                    BOLD + CYAN + "║ " + BLUE + "1. Buscar libro por título       🔎  " + CYAN + "║" + RESET + "\n" +
+                    BOLD + CYAN + "║ " + BLUE + "2. Listar libros registrados     📚  " + CYAN + "║" + RESET + "\n" +
+                    BOLD + CYAN + "║ " + BLUE + "3. Listar autores registrados    ✍️  " + CYAN + "║" + RESET + "\n" +
+                    BOLD + CYAN + "║ " + BLUE + "4. Listar autores vivos por año  🌳  " + CYAN + "║" + RESET + "\n" +
+                    BOLD + CYAN + "║ " + BLUE + "5. Listar libros por idioma      🌐  " + CYAN + "║" + RESET + "\n" +
+                    BOLD + CYAN + "║ " + BLUE + "6. Estadísticas de descargas     📊  " + CYAN + "║" + RESET + "\n" +
+                    BOLD + CYAN + "║ " + BLUE + "7. Top 10 libros más descargados " + "⭐" + "  " + CYAN + "║" + RESET + "\n" +
+                    BOLD + CYAN + "║                                     ║" + RESET + "\n" +
+                    BOLD + CYAN + "║ " + RED + "0. Salir                         ❌  " + CYAN + "║" + RESET + "\n" +
+                    BOLD + CYAN + "╚═════════════════════════════════════╝" + RESET + "\n" +
+                    BOLD + YELLOW + "Elija una opción: " + RESET;
+            // -------------------------------------------------------------------
+
             System.out.println(menu);
             try {
                 opcion = Integer.valueOf(teclado.nextLine());
@@ -79,17 +97,20 @@ public class Principal {
                     case 6:
                         generarEstadisticasDescargas();
                         break;
+                    case 7:
+                        mostrarTop10LibrosMasDescargados();
+                        break;
                     case 0:
-                        System.out.println("Cerrando la aplicación. ¡Gracias!");
+                        System.out.println(GREEN + "Cerrando la aplicación. ¡Gracias!" + RESET);
                         break;
                     default:
-                        System.out.println("Opción inválida.");
+                        System.out.println(RED + "Opción inválida. Por favor, ingrese un número entre 0 y 6." + RESET);
                 }
             } catch (InputMismatchException | NumberFormatException e) {
-                System.out.println("Entrada inválida. Por favor, ingrese un número.");
-                teclado.nextLine();
+                System.out.println(RED + "Entrada inválida. Por favor, ingrese un número." + RESET);
+                teclado.nextLine(); // Consumir la entrada inválida
             } catch (Exception e) {
-                System.out.println("Error al comunicarse con la API o al procesar datos: " + e.getMessage());
+                System.out.println(RED + "Error inesperado: " + e.getMessage() + RESET);
             }
         }
     }
@@ -229,5 +250,34 @@ public class Principal {
         System.out.println("Máximo de descargas: " + stats.getMax());
         System.out.println("Mínimo de descargas: " + stats.getMin());
         System.out.println("------------------------------------------");
+    }
+
+    private void mostrarTop10LibrosMasDescargados() {
+        System.out.println(YELLOW + "\n--- Top 10 Libros Más Descargados ---" + RESET);
+        List<Libro> top10Libros = libroRepository.findTop10ByOrderByNumeroDeDescargasDesc();
+
+        if (top10Libros.isEmpty()) {
+            System.out.println("No hay libros registrados para mostrar el top 10.");
+        } else {
+            top10Libros.forEach(l -> {
+                System.out.println(CYAN + "--------------------------------------" + RESET);
+                System.out.println(BOLD + "Título: " + RESET + l.getTitle());
+                // Asegúrate de que tu entidad Libro tiene un método getAutorPrincipal() o similar
+                // para mostrar el primer autor o todos los autores asociados.
+                // Si tienes una relación ManyToMany con Autor, podría ser algo como:
+                // l.getAutores().stream().map(Autor::getName).collect(Collectors.joining(", "))
+                if (l.getAutores() != null && !l.getAutores().isEmpty()) {
+                    System.out.println(BOLD + "Autor(es): " + RESET + l.getAutores().stream()
+                            .map(a -> a.getName())
+                            .collect(Collectors.joining(", ")));
+                } else {
+                    System.out.println(BOLD + "Autor(es): " + RESET + "Desconocido");
+                }
+                System.out.println(BOLD + "Idioma(s): " + RESET + l.getIdioma());
+                System.out.println(BOLD + "Número de Descargas: " + RESET + l.getNumeroDeDescargas());
+            });
+            System.out.println(CYAN + "--------------------------------------" + RESET);
+        }
+        System.out.println(YELLOW + "---------------------------------------" + RESET);
     }
 }

@@ -14,4 +14,7 @@ public interface LibroRepository extends JpaRepository<Libro, Long> {
 
     // Metodo para buscar un libro por su gutendexId (si ya lo tienes, verifica que sea así)
     Libro findByGutendexId(Long gutendexId);
+
+    // Metodo para encontrar el top 10 de libros por número de descargas de forma descendente
+    List<Libro> findTop10ByOrderByNumeroDeDescargasDesc();
 }
